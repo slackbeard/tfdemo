@@ -4,6 +4,9 @@
       ref="canvas"
       @mousedown.prevent="mouseDown"
       @mousemove.prevent="mouseMove"
+      @touchstart.prevent="touchStart"
+      @touchend.prevent="touchEnd"
+      @touchmove.prevent="touchMove"
     ></canvas>
   </div>
 </template>
@@ -34,6 +37,7 @@ export default {
     };
   },
   mounted() {
+    console.log("Draw component mounted 4");
 
     this.canvas = this.$refs.canvas;
     this.context = this.canvas.getContext('2d', {alpha: false}); 
@@ -75,14 +79,23 @@ export default {
 
     },
     mouseDown: function(e) {
+      return this.drawStart(e.offsetX, e.offsetY);
+    },
+    mouseUp: function(e) {
+      return this.drawEnd(e.offsetX, e.offsetY);
+    },
+    mouseMove: function(e) {
+      return this.drawMove(e.offsetX, e.offsetY);
+    },
+    drawStart: function(x, y) {
       this.drawing = true;
-      this.mouse_x = e.offsetX;
-      this.mouse_y = e.offsetY;
+      this.mouse_x = x;
+      this.mouse_y = y;
       this.last_x = Math.floor(this.mouse_x / this.cells_w);
       this.last_y = Math.floor(this.mouse_y / this.cells_h);
       console.log(`Mouse down x=${this.mouse_x} y=${this.mouse_y}`);
     },
-    mouseUp: function(e) {
+    drawEnd: function(x, y) {
       console.log("Mouse up");
       if (this.drawing) {
         let t_input = tf.browser.fromPixels(this.canvas, 1);
@@ -111,31 +124,51 @@ export default {
 
       this.drawing = false;
     },
-    mouseMove: function(e) {
+    drawMove: function(x, y) {
+
       if (this.drawing) {
-        this.mouse_x = e.offsetX;
-        this.mouse_y = e.offsetY;
+
+        this.mouse_x = x;
+        this.mouse_y = y;
         let cell_x = Math.floor(this.mouse_x / this.cells_w);
         let cell_y = Math.floor(this.mouse_y / this.cells_h);
-        //this.context.fillRect(cell_x, cell_y, 1, 1);
+
         this.context.beginPath();
         this.context.moveTo(this.last_x, this.last_y);
         this.context.lineTo(cell_x, cell_y);
         this.context.stroke();
-        //this.context.closePath();
+
         this.last_x = cell_x;
         this.last_y = cell_y;
 
       }
     },
+    touchStart: function(e) {
+      console.log("touchStart");
+      let targetX = e.target.getBoundingClientRect().x;
+      let targetY = e.target.getBoundingClientRect().y;
+      let offsetX = e.touches[0].clientX - targetX;
+      let offsetY = e.touches[0].clientY - targetY;
+      return this.drawStart(offsetX, offsetY);
+    },
+    touchEnd: function(e) {
+      console.log("touchEnd");
+
+      // coords don't matter for end event
+      return this.drawEnd(0, 0);
+    },
+    touchMove: function(e) {
+      let targetX = e.target.getBoundingClientRect().x;
+      let targetY = e.target.getBoundingClientRect().y;
+      let offsetX = e.touches[0].clientX - targetX;
+      let offsetY = e.touches[0].clientY - targetY;
+      return this.drawMove(offsetX, offsetY);
+    },
     clear() {
-      console.log("Inside canvas clear() ...");
-      console.log("Setting fillStyle ...");
       this.context.fillStyle = "rgb(255,255,255,255)";
       this.context.lineWidth = 3;
-      console.log("calling fillrect() ...");
+
       this.context.fillRect(-1, -1, this.width + 2, this.height + 2);
-      console.log("Finished canvas clear() ...");
     },
   } 
 }

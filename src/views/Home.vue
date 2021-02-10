@@ -40,7 +40,6 @@ export default {
   },
   data() {
     return {
-      drawCanvas: null,
       drawHistory: [{
         id: 0,
         x: 0,
@@ -52,16 +51,12 @@ export default {
       drawHistoryMax: 6,
     };
   },
-  mounted() {
-      this.drawCanvas = this.$refs.drawCanvas; 
-  },
   methods: {
     clear_canvas() {
       console.log("Clearing canvas ... ");
-      console.log("Canvas ctx = " + this.drawCanvas.canvas);
 
 
-      this.drawCanvas.clear();
+      this.$refs.drawCanvas.clear();
     },
     updatePrediction(prediction) {
       console.log("Received prediction: " + prediction);
@@ -72,7 +67,7 @@ export default {
       item.prediction = prediction;
       item.opacity = 1.0;
       item.scale = .5;
-      item.dataUrl = this.drawCanvas.canvas.toDataURL();
+      item.dataUrl = this.$refs.drawCanvas.canvas.toDataURL();
 
       for (const item of this.drawHistory) {
         item.x += 100;
