@@ -1,28 +1,42 @@
 <template>
   <div class="home">
 
+
     <md-card>  
       <md-card-content>
 
-      <div class="draw-history">
-      <div 
-        v-for="item in drawHistory" 
-        :key="item.id"
-        class="draw-history-item"
-        :style="{ right:item.x + 'px', opacity: item.opacity, transform: 'scale(' + item.scale + ')' }" >
+      <div class="draw_container">
 
-        <img :src="item.dataUrl" class="draw-history-img" />
-        <h2> {{ item.prediction }}</h2>
+        <div class="draw-history">
+
+        <Draw class="draw-component" ref="drawCanvas" @predict="updatePrediction" />
+
+        <div 
+          v-for="item in drawHistory" 
+          :key="item.id"
+          class="draw-history-item"
+          :class="{ push: item.isPushing, show: item.isShowing }" >
+
+          <img :src="item.dataUrl" class="draw-history-img" />
+
+          <div class="draw-history-text">
+            {{ item.prediction }}
+          </div>
+
+
+        </div>
+
+        </div>
 
       </div>
 
-      <Draw class="draw-component" ref="drawCanvas" @predict="updatePrediction" />
-      </div>
       </md-card-content>
 
     </md-card>  
 
+
   </div>
+
 </template>
 
 <script>
@@ -42,10 +56,9 @@ export default {
     return {
       drawHistory: [{
         id: 0,
-        x: 0,
-        scale: 1.0,
-        opacity: 0.0,
         dataUrl: "",
+        isPushing: true,
+        isShowing: false,
       }],
       drawHistoryId: 0,
       drawHistoryMax: 6,
@@ -64,26 +77,29 @@ export default {
       window.drawHistory = this.drawHistory;
       
       let item = this.drawHistory[0];
+      item.isShowing = true;
       item.prediction = prediction;
-      item.opacity = 1.0;
-      item.scale = .5;
+      // TODO make this a method in the Draw component
       item.dataUrl = this.$refs.drawCanvas.canvas.toDataURL();
 
-      for (const item of this.drawHistory) {
-        item.x += 100;
-      }
 
       this.drawHistoryId++;
       this.drawHistory.unshift({
         id: this.drawHistoryId,
-        x: 0,
-        opacity: 0.0,
+        isPushing: false,
+        isShowing: false,
+        dataUrl: "",
       });
+      item = this.drawHistory[0];
+
+      // delay setting CSS class so DOM redraws first
+      setTimeout(() => {
+        item.isPushing = true;
+      }, 10);
 
       if (this.drawHistory.length >= this.drawHistoryMax) {
         // fade out last element
         let lastItem = this.drawHistory[this.drawHistoryMax - 1];
-        lastItem.opacity = 0.0;
       }
 
       this.drawHistory.splice(this.drawHistoryMax);
@@ -93,42 +109,68 @@ export default {
 }
 </script>
 <style scoped lang="scss">
+.draw_container {
+  display: flex;
+  width: 100%;
+  height: auto;
+  align-items: center;
+  justify-content: center;
+}
 
-.draw-history .md-card {
-  display: inline-block;
-  width: 800px;
-  height: 200px;
+.draw-history {
+  position: relative;
+  display: block;
+  width: auto;
+  height: 800px;
+  padding: 20px;
   overflow: hidden;
+  box-shadow: 0px 0px 10px black;
 }
 
 .draw-history-item {
-  position: absolute;
+  position: relative;
   overflow: hidden;
-  top: 0px;
-  right: 0px;
-  display: block;
-  clear: none;
-  border: 2px solid black;
-  width: 148px;
-  height: auto;
+  top: -140px;
+  left: 0px;
+  display: flex;
+  height: 0px;
+  opacity: 0.0;
+  width: 280px;
   transition-duration: .2s;
+  /* box-shadow: 0px 0px 6px black; */
+  border: 4px solid #EEE;
+  margin-bottom: 10px;
+}
+
+.draw-history-item.push {
+  height: 140px;
+}
+
+.draw-history-item.show {
+  opacity: 1.0;
 }
 
 .draw-history-img {
-  width: 100%;
-  height: 100%;
+  image-rendering: pixelated;
+  flex-grow: 0 0 140px;
+  width: 140px;
+  height: 140px;
 }
 
+.draw-history-text {
+  flex-grow: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 100px;
+
+}
+ 
 .draw-component {
-  position: absolute;
-  right: 0px;
-  top: 30px;
+  z-index: 99;
+  display: block;
+  position: relative;
+  text-align: left;
 }
 
-.prediction {
-  display: inline-block;
-
-  width: 200px;
-  vertical-align: top;
-}
 </style>

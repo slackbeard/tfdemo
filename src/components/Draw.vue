@@ -1,5 +1,6 @@
 <template>
   <div class="draw">
+    <img ref="cursor" class="cursor" src="cursor.png" />
     <canvas 
       ref="canvas"
       @mousedown.prevent="mouseDown"
@@ -126,6 +127,10 @@ export default {
     },
     drawMove: function(x, y) {
 
+      let cursor = this.$refs.cursor;
+      cursor.style.left = (x - 12) + "px";
+      cursor.style.top = (y - 12) + "px";
+
       if (this.drawing) {
 
         this.mouse_x = x;
@@ -174,11 +179,25 @@ export default {
 }
 </script>
 <style scoped>
+.draw {
+  position: relative;
+  width: 140px; 
+  height: 140px;
+  overflow: hidden;
+}
+
 canvas {
-  //display: inline;
+
   border: 1px solid black; 
 
   image-rendering: pixelated;
+}
 
+.cursor {
+  position: absolute;
+  z-index: 99;
+  left: 0px;
+  top: 0px;
+  pointer-events: none;
 }
 </style>
