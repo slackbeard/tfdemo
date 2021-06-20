@@ -1,4 +1,7 @@
-$color2 : #f00;
-h1 {
-  color: $color2;
-}
+@import "~vue-material/dist/theme/engine";
+
+@include md-register-theme("default", (
+  primary: md-get-palette-color(bluegrey, 600)
+));
+
+@import "~vue-material/dist/theme/all";

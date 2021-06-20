@@ -1,7 +1,12 @@
 <template>
-  <div class="draw">
+  <div>
+  <div v-show="!ready" class="loading">
+    <Spinner class="spinner" style="--image: url('/bubbles_100pt.svg'); color: #80b0c0d0; width: 100%; height: 100%;"/>
+  </div>
+  <div v-show="ready" class="draw">
     <img ref="cursor" class="cursor" src="cursor.png" />
     <canvas 
+      class="draw-canvas"
       ref="canvas"
       @mousedown.prevent="mouseDown"
       @mousemove.prevent="mouseMove"
@@ -9,6 +14,11 @@
       @touchend.prevent="touchEnd"
       @touchmove.prevent="touchMove"
     ></canvas>
+    <canvas
+      ref="overlay"
+      class="draw-overlay"
+    ></canvas>
+  </div>
   </div>
 </template>
 
@@ -17,12 +27,18 @@ console.log("Starting Draw...");
 
 import * as tf from "@tensorflow/tfjs";
 
+import Spinner from './Spinner.vue'
+
 const BASE_URL = process.env.BASE_URL;
 
 export default {
   name: 'Draw',
+  components: {
+    Spinner,
+  },
   data() {
     return {
+      ready: false,
       canvas: null,
       context: null,
 
@@ -40,8 +56,58 @@ export default {
   mounted() {
     console.log("Draw component mounted 4");
 
+    console.log("Enabling prod mode ...");
+    tf.enableProdMode();
+    console.log("Enabled prod mode");
+
     this.canvas = this.$refs.canvas;
     this.context = this.canvas.getContext('2d', {alpha: false}); 
+
+    this.loadModel().then(() => {
+      console.log("Warming up model ...");
+      let t_input = tf.browser.fromPixels(this.canvas, 1);
+      t_input = t_input.reshape([1, 28, 28, 1]);
+      this.model.predict(t_input, {batchSize: 1});
+      console.log("Done warming up");
+      setTimeout(() => {
+        this.$emit("ready");
+        this.ready = true;
+      }, 1000);
+    });
+
+
+
+    this.cells_w = this.canvas_w / this.width;
+    this.cells_h = this.canvas_h / this.height;
+
+    let overlay = this.$refs.overlay;
+    let overlay_ctx = overlay.getContext('2d'); 
+
+    overlay.width = this.canvas_w;
+    overlay.height = this.canvas_h;
+    overlay.style.width = this.canvas_w + "px";
+    overlay.style.height = this.canvas_h + "px";
+
+    overlay_ctx.fillStyle = "rgba(0,0,0,0)";
+    overlay_ctx.clearRect(0, 0, this.canvas_w, this.canvas_h);
+    overlay_ctx.strokeStyle = "rgba(0,0,0,0.1)";
+    overlay_ctx.lineWidth = 1;
+    overlay_ctx.translate(.5, .5);
+
+    for (let i = 0; i < this.width; i++) {
+      let offset = i * this.cells_w;
+
+      overlay_ctx.beginPath();
+      overlay_ctx.moveTo(0, offset);
+      overlay_ctx.lineTo(this.canvas_w, offset);
+      overlay_ctx.stroke();
+
+      overlay_ctx.beginPath();
+      overlay_ctx.moveTo(offset, 0);
+      overlay_ctx.lineTo(offset, this.canvas_h);
+      overlay_ctx.stroke();
+    }
+
 
     this.context.imageSmoothingEnabled = false;
     this.canvas.width = this.width;
@@ -51,19 +117,16 @@ export default {
     this.canvas.style.height = this.canvas_h + "px";
   
 
-    this.cells_w = this.canvas_w / this.width;
-    this.cells_h = this.canvas_h / this.height;
 
-    this.context.fillStyle = "rgba(255,255,255,255)";
+    this.context.fillStyle = "rgba(1,1,1,1)";
     this.context.fillRect(0, 0, this.width, this.height);
 
-    this.context.fillStyle = "rgba(0,0,0,255)";
+    this.context.fillStyle = "rgba(0,0,0,1)";
     this.context.strokeStyle = "black";
     this.context.lineWidth = 2;
     this.context.translate(.5, .5);
     window.addEventListener("mouseup", e => { this.mouseUp(e);});
 
-    this.loadModel();
     this.clear();
   },
   methods: {
@@ -72,7 +135,7 @@ export default {
       const model_url = BASE_URL + "weights/model.json";
       console.log(`Loading model url='${model_url}'`);
 
-      tf.loadLayersModel(model_url)
+      return tf.loadLayersModel(model_url)
       .then(model => {
         this.model = model;
         console.log("Done loading model");
@@ -82,8 +145,8 @@ export default {
     mouseDown: function(e) {
       return this.drawStart(e.offsetX, e.offsetY);
     },
-    mouseUp: function(e) {
-      return this.drawEnd(e.offsetX, e.offsetY);
+    mouseUp: function() {
+      return this.drawEnd();
     },
     mouseMove: function(e) {
       return this.drawMove(e.offsetX, e.offsetY);
@@ -96,7 +159,7 @@ export default {
       this.last_y = Math.floor(this.mouse_y / this.cells_h);
       console.log(`Mouse down x=${this.mouse_x} y=${this.mouse_y}`);
     },
-    drawEnd: function(x, y) {
+    drawEnd: function() {
       console.log("Mouse up");
       if (this.drawing) {
         let t_input = tf.browser.fromPixels(this.canvas, 1);
@@ -160,7 +223,7 @@ export default {
       console.log("touchEnd");
 
       // coords don't matter for end event
-      return this.drawEnd(0, 0);
+      return this.drawEnd();
     },
     touchMove: function(e) {
       let targetX = e.target.getBoundingClientRect().x;
@@ -179,25 +242,50 @@ export default {
 }
 </script>
 <style scoped>
+.loading {
+  width: 100px;
+  height: 100px;
+  text-align: center;
+  font-size: 1.5em;
+}
+.spinner {
+  display: block;
+  margin-bottom: 10px;
+}
+
 .draw {
+  cursor: none;
   position: relative;
-  width: 140px; 
+  width: 140px;
   height: 140px;
   overflow: hidden;
 }
 
-canvas {
+.draw-canvas {
 
+  position: absolute;
+  /* top: 0px;
+  left: 0px; */
+  z-index: 1;
   border: 1px solid black; 
 
   image-rendering: pixelated;
 }
 
+.draw-overlay {
+  position: absolute;
+  z-index: 2;
+  left: 0px;
+  top: 0px;
+   
+  pointer-events: none;
+}
+
 .cursor {
   position: absolute;
   z-index: 99;
-  left: 0px;
-  top: 0px;
+  left: -32px;
+  top: -32px;
   pointer-events: none;
 }
 </style>
