@@ -6,7 +6,7 @@ module.exports = {
       entry: 'src/main.js',
       template: 'public/index.html',
       filename: 'index.html',
-      title: 'Tensorflow Demo',
+      title: 'Tensorflow OCR Demo',
       chunks: ['chunk-vendors', 'chunk-common', 'index']
     },
   },

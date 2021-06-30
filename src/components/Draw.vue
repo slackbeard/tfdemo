@@ -1,7 +1,7 @@
 <template>
   <div>
   <div v-show="!ready" class="loading">
-    <Spinner class="spinner" style="--image: url('/bubbles_100pt.svg'); color: #80b0c0d0; width: 100%; height: 100%;"/>
+    <Spinner class="spinner" :style="`--image: url('${BASE_URL}bubbles_100pt.svg'); color: #80b0c0d0; width: 100%; height: 100%;`"/>
   </div>
   <div v-show="ready" class="draw">
     <img ref="cursor" class="cursor" src="cursor.png" />
@@ -29,7 +29,6 @@ import * as tf from "@tensorflow/tfjs";
 
 import Spinner from './Spinner.vue'
 
-const BASE_URL = process.env.BASE_URL;
 
 export default {
   name: 'Draw',
@@ -41,6 +40,7 @@ export default {
       ready: false,
       canvas: null,
       context: null,
+      BASE_URL: process.env.BASE_URL,
 
       width: 28,
       height: 28,
@@ -132,7 +132,7 @@ export default {
   methods: {
     loadModel() {
   
-      const model_url = BASE_URL + "weights/model.json";
+      const model_url = this.BASE_URL + "weights/model.json";
       console.log(`Loading model url='${model_url}'`);
 
       return tf.loadLayersModel(model_url)
