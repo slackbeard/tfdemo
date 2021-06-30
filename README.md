@@ -2,6 +2,8 @@
 A simple OCR test app using Tensorflow JS to recognize hand-drawn digits.
 Draw a digit, the app will print it's interpretation of your digit.
 
+![Screenshot](screenshot.jpg)
+
 ## Project setup
 ```
 npm install
